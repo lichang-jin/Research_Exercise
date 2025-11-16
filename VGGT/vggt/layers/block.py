@@ -7,7 +7,7 @@ import torch
 from torch import Tensor, nn
 
 from typing import Callable, List, Any, Tuple, Dict, Optional
-
+from xformers.ops import fmha
 
 XFORMERS_AVAILABLE = False
 
@@ -105,6 +105,8 @@ class NestedTensorBlock(Block):
         """x_list contains a list of tensors to nest together and run."""
         assert isinstance(self.attention, MemEffAttention)
 
+        attn_bias_cache: Dict[Tuple, Any] = {}  # 存储已计算的掩码
+
         def attn_residual_func(x: Tensor, attn_bias=None) -> Tensor:
             return self.attention(self.norm1(x), attn_bias=attn_bias)
         def ffn_residual_func(x: Tensor, attn_bias=None) -> Tensor:
@@ -114,7 +116,11 @@ class NestedTensorBlock(Block):
             """This function will perform the index select, cat the tensors, and provide the attn_bias from cache."""
             batch_sizes = [b.shape[0] for b in branges] if branges is not None else [x.shape[0] for x in x_list]
             all_shapes = tuple((b, x.shape[1]) for b, x in zip(batch_sizes, x_list))
-            if all_shapes
+            if all_shapes not in attn_bias_cache.keys():
+                seq_lens = []
+                for b, x in zip(batch_sizes, x_list):
+                    for _ in range(b):
+                        seq_lens.append(x.shape[1])
 
 
         def drop_add_residual_stochastic_depth_list(x: List[Tensor], residual_func, sample_drop_ratio: float = 0.0, scaling_vector=None) -> Tensor:

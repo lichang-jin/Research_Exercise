@@ -14,3 +14,11 @@
 
 [Jianyuan Wang](https://jytime.github.io/), [Minghao Chen](https://silent-chen.github.io/), [Nikita Karaev](https://nikitakaraevv.github.io/), [Andrea Vedaldi](https://www.robots.ox.ac.uk/~vedaldi/), [Christian Rupprecht](https://chrirupp.github.io/), [David Novotny](https://d-novotny.github.io/)
 </div>
+
+## Introduction
+## Requirements
++ Python 3.10
++ PyTorch 2.7.1+cu118
++ xFormers 0.0.31.post1
+```python
+pip install -U xformers==0.0.31.post1 --index-url https://download.pytorch.org/whl/cu118

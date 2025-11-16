@@ -2,6 +2,7 @@ import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
+from xformers.ops import memory_efficient_attention
 
 from einops import rearrange
 from functools import partial
@@ -106,7 +107,7 @@ class MemEffAttention(Attention):
             weight_value = torch.einsum('b h i j, b h j d -> b h i d', exp_weight, value)
             return exp_weight.sum(dim=-1), weight_value, rearrange(weight_max, '... 1 -> ...')
 
-        def memory_efficient_attention(
+        def memory_efficient_attention_self(
                 query: Tensor,
                 key: Tensor,
                 value: Tensor,
