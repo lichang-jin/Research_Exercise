@@ -1,4 +1,5 @@
 torch
 torchvision
+xformers
 einops
 functools
