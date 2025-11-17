@@ -116,9 +116,57 @@ flowchart LR
     A4 --> B1
 ```
 
-
 ### 2. NestedTensorBlock
++ 可以处理 `List[Tensor]` 类型的输入，对于每个 `Tensor` 的操作与 `Block` 略有不同
+  - 需要根据 `Tensor` 的序列长度计算掩码 `attn_bias`
++ 在 Train 过程，若 `self.sample_drop_ratio` $> 0$，则：
+```mermaid
+flowchart LR
+        A_1(x) --sample_drop--> A_2(x')
+    subgraph A [残差注意力]
+        A1(x) --Norm--> A2(x)
+        A2 --MemEffAttention--> A3(y)
+        A3 --LayerScale--> A4(y)
+        A1 --⊕--> A4
+    end
+    subgraph B [残差 FFN]
+        B1(x) --Norm--> B2(x)
+        B2 --MLP--> B3(y)
+        B3 --LayerScale--> B4(y)
+        B1 --⊕--> B4
+    end
+    A_2 --> A1
+    A4 --> B1
+```
 
++ 在 Test 过程，或 `self.sample_drop_ratio` $= 0$，则：
+```mermaid
+flowchart LR
+    subgraph A [残差注意力]
+        A1(x) --Norm--> A2(x)
+        A2 --MemEffAttention--> A3(y)
+        A3 --LayerScale--> A4(y)
+        A1 --⊕--> A4
+    end
+    subgraph B [残差 FFN]
+        B1(x) --Norm--> B2(x)
+        B2 --MLP--> B3(y)
+        B3 --LayerScale--> B4(y)
+        B1 --⊕--> B4
+    end
+    A_2 --> A1
+    A4 --> B1
+```
+
+## [SwiGLUFFN](./swiglu_ffn.py)
+### 1. SwiGLUFFN
++ `x`：$B\times N\times C_i\xrightarrow{\text{线性层}(C_i\to2C_h)}B\times N\times 2C_h$
+  - `C_i`：输入通道数
+  - `C_h`：隐藏层通道数，默认值为 `C_i`
+  - `C_o`：输出通道数，默认值为 `C_i`
++ `x1, x2`：$B\times N\times C_h$
++ `x` $\to$ `hidden`：$\text{SiLU}(x_1) * x_2$
++ `x`：$B\times N\times C_h\xrightarrow{\text{线性层}(C_h\to C_o)}B\times N\times C_o$
 
 
 

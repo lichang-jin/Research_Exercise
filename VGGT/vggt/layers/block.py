@@ -116,8 +116,8 @@ class NestedTensorBlock(Block):
                 seq_lens = []
                 for b, x in zip(batch_sizes, x_list):
                     for _ in range(b):
-                        seq_lens.append(x.shape[1])
-                attn_bias = fmha.BlockDiagonalMask.from_seqlens(seq_lens)
+                        seq_lens.append(x.shape[1])     # 每个batch的序列长度
+                attn_bias = fmha.BlockDiagonalMask.from_seqlens(seq_lens)   # 计算序列掩码
                 attn_bias._batch_sizes = batch_sizes
                 attn_bias_cache[all_shapes] = attn_bias
 
