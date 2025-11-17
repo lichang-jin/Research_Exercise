@@ -55,6 +55,67 @@
 
 ## [Block](./block.py)
 ### 1. Block
++ 在 Train 过程，若 `self.sample_drop_ratio` $> 0.1$，则：
+```mermaid
+flowchart LR
+        A_1(x) --sample_drop--> A_2(x')
+    subgraph A [残差注意力]
+        A1(x) --Norm--> A2(x)
+        A6(pos) --Attention--> A3(x)
+        A2 --Attention--> A3(y)
+        A3 --LayerScale--> A4(y)
+        A1 --⊕--> A4
+    end
+    subgraph B [残差 FFN]
+        B1(x) --Norm--> B2(x)
+        B2 --MLP--> B3(y)
+        B3 --LayerScale--> B4(y)
+        B1 --⊕--> B4
+    end
+    A_2 --> A1
+    A4 --> B1
+```
+
++ 在 Train 过程，若 $0<$ `self.sample_drop_ratio` $\leq 0.1$，则：
+```mermaid
+flowchart LR
+    subgraph A [残差注意力]
+        A1(x) --Norm--> A2(x)
+        A6(pos) --Attention--> A3(x)
+        A2 --Attention--> A3(y)
+        A3 --LayerScale--> A4(y)
+        A4 --DropPath--> A5(y)
+        A1 --⊕--> A5
+    end
+    subgraph B [残差 FFN]
+        B1(x) --Norm--> B2(x)
+        B2 --MLP--> B3(y)
+        B3 --LayerScale--> B4(y)
+        B4 --DropPath--> B5(y)
+        B1 --⊕--> B5
+    end
+    A5 --> B1
+```
+
++ 在 Test 过程，或 `self.sample_drop_ratio` $= 0$，则：
+```mermaid
+flowchart LR
+    subgraph A [残差注意力]
+        A1(x) --Norm--> A2(x)
+        A6(pos) --Attention--> A3(x)
+        A2 --Attention--> A3(y)
+        A3 --LayerScale--> A4(y)
+        A1 --⊕--> A4
+    end
+    subgraph B [残差 FFN]
+        B1(x) --Norm--> B2(x)
+        B2 --MLP--> B3(y)
+        B3 --LayerScale--> B4(y)
+        B1 --⊕--> B4
+    end
+    A4 --> B1
+```
+
 
 ### 2. NestedTensorBlock
 
