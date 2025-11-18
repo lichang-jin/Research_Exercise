@@ -60,14 +60,14 @@
 flowchart LR
         A_1(x) --sample_drop--> A_2(x')
     subgraph A [残差注意力]
-        A1(x) --Norm--> A2(x)
+        A1(x) --norm--> A2(x)
         A6(pos) --Attention--> A3(x)
         A2 --Attention--> A3(y)
         A3 --LayerScale--> A4(y)
         A1 --⊕--> A4
     end
     subgraph B [残差 FFN]
-        B1(x) --Norm--> B2(x)
+        B1(x) --norm--> B2(x)
         B2 --MLP--> B3(y)
         B3 --LayerScale--> B4(y)
         B1 --⊕--> B4
@@ -80,7 +80,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph A [残差注意力]
-        A1(x) --Norm--> A2(x)
+        A1(x) --norm--> A2(x)
         A6(pos) --Attention--> A3(x)
         A2 --Attention--> A3(y)
         A3 --LayerScale--> A4(y)
@@ -88,7 +88,7 @@ flowchart LR
         A1 --⊕--> A5
     end
     subgraph B [残差 FFN]
-        B1(x) --Norm--> B2(x)
+        B1(x) --norm--> B2(x)
         B2 --MLP--> B3(y)
         B3 --LayerScale--> B4(y)
         B4 --DropPath--> B5(y)
@@ -101,14 +101,14 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph A [残差注意力]
-        A1(x) --Norm--> A2(x)
+        A1(x) --norm--> A2(x)
         A6(pos) --Attention--> A3(x)
         A2 --Attention--> A3(y)
         A3 --LayerScale--> A4(y)
         A1 --⊕--> A4
     end
     subgraph B [残差 FFN]
-        B1(x) --Norm--> B2(x)
+        B1(x) --norm--> B2(x)
         B2 --MLP--> B3(y)
         B3 --LayerScale--> B4(y)
         B1 --⊕--> B4
@@ -124,13 +124,13 @@ flowchart LR
 flowchart LR
         A_1(x) --sample_drop--> A_2(x')
     subgraph A [残差注意力]
-        A1(x) --Norm--> A2(x)
+        A1(x) --norm--> A2(x)
         A2 --MemEffAttention--> A3(y)
         A3 --LayerScale--> A4(y)
         A1 --⊕--> A4
     end
     subgraph B [残差 FFN]
-        B1(x) --Norm--> B2(x)
+        B1(x) --norm--> B2(x)
         B2 --MLP--> B3(y)
         B3 --LayerScale--> B4(y)
         B1 --⊕--> B4
@@ -143,18 +143,17 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph A [残差注意力]
-        A1(x) --Norm--> A2(x)
+        A1(x) --norm--> A2(x)
         A2 --MemEffAttention--> A3(y)
         A3 --LayerScale--> A4(y)
         A1 --⊕--> A4
     end
     subgraph B [残差 FFN]
-        B1(x) --Norm--> B2(x)
+        B1(x) --norm--> B2(x)
         B2 --MLP--> B3(y)
         B3 --LayerScale--> B4(y)
         B1 --⊕--> B4
     end
-    A_2 --> A1
     A4 --> B1
 ```
 
@@ -165,10 +164,31 @@ flowchart LR
   - `C_h`：隐藏层通道数，默认值为 `C_i`
   - `C_o`：输出通道数，默认值为 `C_i`
 + `x1, x2`：$B\times N\times C_h$
-+ `x` $\to$ `hidden`：$\text{SiLU}(x_1) * x_2$
++ `x` $\to$ `hidden`：`F.silu(x1) * x2`
+  - $\text{SiLU}(x) = x * \text{sigmoid}(x)$
 + `x`：$B\times N\times C_h\xrightarrow{\text{线性层}(C_h\to C_o)}B\times N\times C_o$
 
+### 2. SwiGLUFFNFused
++ 降低了中间隐藏层的维度，并将其变为 8 的倍数，方便在 GPU 上进行并行计算
++ 隐藏层维度 `C_h`：$\lfloor\left(\frac{2C_h}{3} + 7\right) / 8\rfloor \times 8$
 
+## [Rope](./rope.py)（RotaryPositionEmbedding）
+### 1. PositionGetter
++ 图像块位置编码，该类生成并缓存网格中图像块的二维空间位置，高效管理二维网格中图像块空间坐标的生成过程，通过缓存机制避免重复计算
++ `(h, w)`：图像块的高度和宽度
++ `y, x`：`[0,1,...,h-1], [0,1,...,w-1]`
++ `positions` $\to$ (`y` $\times$ `x`)：$1\times hw\times 2$
 
+### 2. RotaryPositionEmbedding2D
++ 旋转位置编码，该类可以对 `tokens` 按照 `positions` 进行旋转位置编码，返回编码后的特征
++ `tokens`：$B\times N\times C$，最后一维的维度必须为偶数
+  - `vf, hf`：$B\times N\times C/2$，将 `tokens` 均分为 2 部分
++ `positions`：$B\times N\times 2$，第二维为 `tokens` 的数量，最后一维的维度为 2（`y` $\times$ `x`）
+  - `position_x, position_y`：$B\times N$
++ `positions` $\to$ `cos_components, sin_components`：$B\times N\times C/2$，根据 `positions` 生成旋转位置编码的频率分量
++ 特征计算：
+  - 将 `x` 分为两部分 `x1,x2`：$B\times N\times C/4$，将 `x2` 取负后拼接 `x1`，得到 `rotate_x = torch.cat(-x2, x1)`：$B\times N\times C/2$
+  - `feature` $\to$ `x * cos_components + rotate_x * sin_components`：$B\times N\times C/2$
++ 输出特征 `feature`：$B\times N\times C$ 为 `vf` 和 `hf` 的拼接
 
-
+## [ViT](./vision_transformer.py)（VisionTransformer）
