@@ -55,6 +55,7 @@
 
 ## [Block](./block.py)
 ### 1. Block
++ 下面所有的 `norm` 均使用 Layer Normalization
 + 在 Train 过程，若 `self.sample_drop_ratio` $> 0.1$，则：
 ```mermaid
 flowchart LR
@@ -192,3 +193,15 @@ flowchart LR
 + 输出特征 `feature`：$B\times N\times C$ 为 `vf` 和 `hf` 的拼接
 
 ## [ViT](./vision_transformer.py)（VisionTransformer）
++ 基于 DINOv2 的 Vision Transformer，共由 `self.num_blocks = depth` 个 `Block` 组成
++ `init_weights()`：初始化权重
+  - `self.pos_embed`：$1\times (N+T)\times C$，位置编码，$N$ 为图像块 `patch` 的数量，$T$ 为 `tokens` 的数量，$C$ 为 `self.embed_dim`，初始化为标准差为 `0.02` 的截断正态分布
+  - `self.cls_token`：$1\times 1\times C$，初始化为标准差为 `1e-6` 的正态分布
+  - `self.register_tokens`：$1\times R\times C$，$R$ 为 register tokens 的数量，初始化为标准差为 `1e-6` 的正态分布
+  - 将所有 `nn.Linear` 的权重初始化为标准差为 `0.02` 的截断正态分布，偏置初始化为 `0`
++ `interpolate_pos_encoding()`：对图像块 `patch` 的位置编码进行双三次插值适配，主要用于处理输入图像尺寸与预训练模型训练时尺寸不一致的情况
++ `prepare_tokens_with_masks()`：根据 `masks` 对 `tokens` 进行填充，并将 `cls_token` 和 `register_tokens` 拼接在 `tokens` 的前面，同时进行插值适配
++ `forward()`：输入 `x` 和 `masks`，可以为单个 `Tensor` 也可以为 `List[Tensor]`
+  - `x` $\to$ `prepare_tokens_with_masks(x, masks)`
+  - `x` $\to$ `norm(x)`
+  - 返回 `cls-token`，`register-tokens`，`tokens`，`x`，`masks`

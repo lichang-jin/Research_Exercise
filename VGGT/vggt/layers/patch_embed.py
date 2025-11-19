@@ -32,7 +32,7 @@ class PatchEmbed(nn.Module):
         self.img_size = image_HW
         self.patch_size = patch_HW
         self.patch_grid_size = patch_grid_size
-        self.num_patches = patch_grid_size[0] * patch_grid_size[1]
+        self.num_patches: int = patch_grid_size[0] * patch_grid_size[1]
         self.in_channels = in_channels
         self.embed_dim = embed_dim
         self.flatten_embedding = flatten_embedding
