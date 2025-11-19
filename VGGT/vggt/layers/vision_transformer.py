@@ -256,7 +256,7 @@ class DinoVisionTransformer(nn.Module):
             return self.head(ret["x_norm_cls-token"])
 
 
-    def _get_intermediate_layers_not_chunked(self, x, n = 1) -> List[Tensor]:
+    def _get_intermediate_layers_not_chunked(self, x, n = 1):
         # If n: int, take the n last blocks. If n: list, take them.
         x = self.prepare_tokens_with_masks(x)
         total_blocks = self.num_blocks
@@ -269,7 +269,7 @@ class DinoVisionTransformer(nn.Module):
         assert len(output) == len(blocks_idx), f"Only {len(output)} blocks found, but {len(blocks_idx)} expected."
         return output
 
-    def _get_intermediate_layers_chunked(self, x, n = 1) -> List[Tensor]:
+    def _get_intermediate_layers_chunked(self, x, n = 1):
         # If n: int, take the n last blocks. If n: list, take them.
         x = self.prepare_tokens_with_masks(x)
         total_blocks = self.num_blocks
@@ -285,7 +285,8 @@ class DinoVisionTransformer(nn.Module):
         assert len(output) == len(blocks_idx), f"Only {len(output)} blocks found, but {len(blocks_idx)} expected."
         return output
 
-    def get_intermediate_layers(self, x, n = 1, reshape = False, return_class_token = False, norm = True) -> Tuple[Union[Tensor, Tuple[Tensor]]]:
+    def get_intermediate_layers(self, x, n = 1, reshape = False, return_class_token = False, norm = True):
+        """Get intermediate layers output. If return_class_token => True, return Tuple[Tuple[Tensor]], else return Tuple[Tensor]."""
         if self.chunked_blocks:
             output = self._get_intermediate_layers_chunked(x, n)
         else:
