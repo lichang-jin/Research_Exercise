@@ -25,7 +25,7 @@ def activate_pose(pred_pose, translation_act = "linear", quaternion_act = "linea
         if act_type == "linear":
             return pose
         elif act_type == "inv_log":
-            return _Math_inverse_log_transform(pose)
+            return _Math_inverse_log(pose)
         elif act_type == "exp":
             return torch.exp(pose)
         elif act_type == "relu":
@@ -61,10 +61,10 @@ def activate_head(output: Tensor, point_act = "norm_exp", confidence_act = "exp1
     elif point_act == "relu":
         points = F.relu(xyz)
     elif point_act == "inv_log":
-        points = _Math_inverse_log_transform(xyz)
+        points = _Math_inverse_log(xyz)
     elif point_act == "xy_inv_log":
         xy, z = xyz.split([2, 1], dim=-1)
-        z = _Math_inverse_log_transform(z)
+        z = _Math_inverse_log(z)
         points = torch.cat([xy * z, z], dim=-1)
     elif point_act == "sigmoid":
         points = torch.sigmoid(xyz)
@@ -87,6 +87,6 @@ def activate_head(output: Tensor, point_act = "norm_exp", confidence_act = "exp1
     return points, confidence
 
 
-def _Math_inverse_log_transform(x):
+def _Math_inverse_log(x):
     """f(x) = sign(x) * (exp(|x|) - 1)"""
     return torch.sign(x) * (torch.expm1(torch.abs(x)))
