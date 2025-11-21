@@ -205,3 +205,4 @@ flowchart LR
   - `x` $\to$ `prepare_tokens_with_masks(x, masks)`
   - `x` $\to$ `norm(x)`
   - 返回 `cls-token`，`register-tokens`，`tokens`，`x`，`masks`
++ `get_intermediate_layers()`：获取 `self.num_blocks` 中间层的输出

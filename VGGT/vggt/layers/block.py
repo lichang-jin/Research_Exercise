@@ -7,7 +7,7 @@ import torch
 from torch import Tensor, nn
 from xformers.ops import fmha, index_select_cat, scaled_index_add
 
-from typing import Callable, List, Any, Tuple, Dict, Optional
+from typing import Callable, List, Any, Tuple, Dict
 
 
 XFORMERS_AVAILABLE = False

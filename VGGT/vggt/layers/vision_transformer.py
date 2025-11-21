@@ -1,5 +1,5 @@
 import torch
-from torch import Tensor, nn
+from torch import nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 from torch.nn.init import trunc_normal_
@@ -8,7 +8,7 @@ from . import MLP, PatchEmbed, SwiGLUFFNFused, MemEffAttention, NestedTensorBloc
 from functools import partial
 import math
 import logging
-from typing import Tuple, Sequence, Callable, Union, List
+from typing import Callable
 
 
 logger = logging.getLogger("DINOv2")
@@ -302,3 +302,59 @@ class DinoVisionTransformer(nn.Module):
             return tuple(zip(output, class_tokens))
         else:
             return tuple(output)
+
+
+# Model
+class ViTBlock(Block):
+    def __init__(self, *args, **kwargs):
+        kwargs['attn_class'] = MemEffAttention
+        super().__init__(*args, **kwargs)
+
+def ViT_small(patch_size: int = 16, num_register_tokens: int = 0, **kwargs):
+    return DinoVisionTransformer(
+        patch_size = patch_size,
+        embed_dim = 384,
+        depth = 12,
+        num_heads = 6,
+        mlp_ratio = 4,
+        block_fn = ViTBlock,
+        num_register_tokens = num_register_tokens,
+        **kwargs,
+    )
+
+def ViT_base(patch_size: int = 16, num_register_tokens: int = 0, **kwargs):
+    return DinoVisionTransformer(
+        patch_size = patch_size,
+        embed_dim = 768,
+        depth = 12,
+        num_heads = 12,
+        mlp_ratio = 4,
+        block_fn = ViTBlock,
+        num_register_tokens = num_register_tokens,
+        **kwargs,
+    )
+
+def ViT_large(patch_size: int = 16, num_register_tokens: int = 0, **kwargs):
+    return DinoVisionTransformer(
+        patch_size = patch_size,
+        embed_dim = 1024,
+        depth = 24,
+        num_heads = 16,
+        mlp_ratio = 4,
+        block_fn = ViTBlock,
+        num_register_tokens = num_register_tokens,
+        **kwargs,
+    )
+
+def ViT_giant2(patch_size: int = 16, num_register_tokens: int = 0, **kwargs):
+    """Close to ViT-giant, with embed-dim 1536 and 24 heads => embed-dim per head 64."""
+    return DinoVisionTransformer(
+        patch_size = patch_size,
+        embed_dim = 1536,
+        depth = 40,
+        num_heads = 24,
+        mlp_ratio = 4,
+        block_fn = ViTBlock,
+        num_register_tokens = num_register_tokens,
+        **kwargs,
+    )
