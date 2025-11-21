@@ -1,5 +1,5 @@
 <div align="center">
-<h1>VGGT 网络结构</h1>
+<h1>VGGT 网络结构——layers</h1>
 </div>
 
 ## [Attention](./attention.py)
