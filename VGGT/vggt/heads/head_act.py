@@ -15,29 +15,28 @@ def activate_pose(pred_pose, translation_act = "linear", quaternion_act = "linea
     quaternion_component = pred_pose[:, 3:7]
     focal_length_component = pred_pose[:, 7:]
 
+    def base_pose_act(pose, act_type="linear"):
+        """
+        Apply basic activation function to pose parameters.
+        :param pose: Tensor containing encoded pose parameters
+        :param act_type: Activation type ("linear", "inv_log", "exp", "relu")
+        :return: Activated pose parameters
+        """
+        if act_type == "linear":
+            return pose
+        elif act_type == "inv_log":
+            return _Math_inverse_log_transform(pose)
+        elif act_type == "exp":
+            return torch.exp(pose)
+        elif act_type == "relu":
+            return F.relu(pose)
+        else:
+            raise ValueError(f"Invalid activation type: {act_type}")
+
     translation = base_pose_act(translation_component, translation_act)
     quaternion = base_pose_act(quaternion_component, quaternion_act)
     focal_length = base_pose_act(focal_length_component, focal_length_act)
     return torch.cat([translation, quaternion, focal_length], dim=-1)
-
-
-def base_pose_act(pose, act_type = "linear"):
-    """
-    Apply basic activation function to pose parameters.
-    :param pose: Tensor containing encoded pose parameters
-    :param act_type: Activation type ("linear", "inv_log", "exp", "relu")
-    :return: Activated pose parameters
-    """
-    if act_type == "linear":
-        return pose
-    elif act_type == "inv_log":
-        return _Math_inverse_log_transform(pose)
-    elif act_type == "exp":
-        return torch.exp(pose)
-    elif act_type == "relu":
-        return F.relu(pose)
-    else:
-        raise ValueError(f"Invalid activation type: {act_type}")
 
 
 def activate_head(output: Tensor, point_act = "norm_exp", confidence_act = "exp1"):
