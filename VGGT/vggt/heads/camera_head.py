@@ -26,7 +26,7 @@ class CameraHead(nn.Module):
         self.trunk_depth = trunk_depth
         self.trunk = nn.Sequential(*[Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, init_values=init_values) for _ in range(trunk_depth)])
 
-        if pose_encoding_type == "absT_quaR_FoV":
+        if pose_encoding_type == "absT_quaR_FoV":   # [t, q, f]
             self.target_dim = 9
         else:
             raise ValueError(f"Unsupported camera encoding type: {pose_encoding_type}")

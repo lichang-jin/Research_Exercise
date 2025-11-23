@@ -7,7 +7,7 @@
     - $\mathbf{t}\in\mathbb{R}^3$：平移向量 $\xrightarrow{\text{激活函数}_1}$ $\mathbf{t}'\in\mathbb{R}^3$
     - $\mathbf{q}\in\mathbb{R}^4$：旋转四元数 $\xrightarrow{\text{激活函数}_2}$ $\mathbf{q}'\in\mathbb{R}^4$
     - $\mathbf{f}\in\mathbb{R}^2$：焦距 $\xrightarrow{\text{激活函数}_3}$ $\mathbf{f}'\in\mathbb{R}^2$
-    - $\mathbf{g}'=[\mathbf{q}',\mathbf{t}',\mathbf{f}']\in\mathbb{R}^9$
+    - 输出 $\mathbf{g}'=[\mathbf{q}',\mathbf{t}',\mathbf{f}']\in\mathbb{R}^9$
 + `activate_head()`：处理 3D 点云预测网络的输出，得到 3D 点坐标和置信度
     - 输入：网络输出张量 `output`：${B\times C\times H\times W}\to B\times H\times W\times C$
     - `xyz`：$B\times H\times W\times (C-1)\xrightarrow{\text{激活函数}_1}$ `points`
@@ -15,3 +15,35 @@
     - 输出：3D 点坐标 $\mathbf{p}\in\mathbb{R}^{B\times H\times W\times 3}$，置信度 $\mathbf{c}\in\mathbb{R}^{B\times H\times W\times 1}$
 
 ## [CameraHead](./camera_head.py)
++ 迭代预测相机姿态参数，得到相机姿态 $\mathbf{g}=[\mathbf{q},\mathbf{t},\mathbf{f}]\in\mathbb{R}^9$
++ 下面所有的 norm 均使用 Layer Normalization
++ `pose_token`：预测得到的相机姿态的 token 表示，维度为 $d$
++ `embed_pose()`：将相机姿态参数编码为 token，本质为 $\xrightarrow{线性层(9\to d)}$
+  - `pred_pose`：$\mathbb{R}^9$ $\xrightarrow{\text{embed_pose()}}$ `module_input`：$\mathbb{R}^d$
++ `poseLN_modulation()`：对 token 进行调制，本质为 $\xrightarrow{\text{SiLU}激活函数}\xrightarrow{线性层(d\to 3d)}$
++ `adaptive_norm()`：自适应层归一化，即只根据输入进行归一化，没有可学习的缩放和偏移参数
+  - `module_input`：$\mathbb{R}^d\xrightarrow{\text{poseLN_modulation()}}$ $\mathbb{R}^{3d}\xrightarrow{分块}$ `gate_msa, scale_msa, shift_msa`：$\mathbb{R}^d$
+  - 
+```mermaid
+flowchart LR
+    subgraph A [迭代预测]
+        A0(pred_pose) --detach+embed_pose--> A1
+        A1(module_input) --poseLN_modulation--> A2(shift_msa)
+        A1 --poseLN_modulation--> A3(scale_msa)
+        A1 --poseLN_modulation--> A4(gate_msa)
+        A2 --> A5(pose_tokens_modulated)
+        A3 --> A5
+        A4 --> A5
+        A6 --adaptive_norm--> A12(pose_token)
+        A12 --> A5
+        A6 --⊕--> A5
+        A5 --trunk+trunk_norm--> A7(pose_tokens_y)
+        A7 --pose_branch--> A9(pred_pose_delta)
+        A9 --⊕--> A0
+        A0 --activate_pose--> A11(activated_pose)
+    end
+    A_1(empty_pose) --embed_pose--> A1
+    A8(pose_token) --token_norm--> A6(pose_token)
+    
+    linkStyle 0 stroke-width:5px, stroke:green
+```
