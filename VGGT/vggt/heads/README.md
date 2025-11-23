@@ -18,12 +18,20 @@
 + 迭代预测相机姿态参数，得到相机姿态 $\mathbf{g}=[\mathbf{q},\mathbf{t},\mathbf{f}]\in\mathbb{R}^9$
 + 下面所有的 norm 均使用 Layer Normalization
 + `pose_token`：预测得到的相机姿态的 token 表示，维度为 $d$
+  - `pose_tokens`：$\mathbb{R}^{B\times S\times d}$ $\xrightarrow{\text{token_norm()}}$ `pose_tokens`
 + `embed_pose()`：将相机姿态参数编码为 token，本质为 $\xrightarrow{线性层(9\to d)}$
   - `pred_pose`：$\mathbb{R}^9$ $\xrightarrow{\text{embed_pose()}}$ `module_input`：$\mathbb{R}^d$
 + `poseLN_modulation()`：对 token 进行调制，本质为 $\xrightarrow{\text{SiLU}激活函数}\xrightarrow{线性层(d\to 3d)}$
 + `adaptive_norm()`：自适应层归一化，即只根据输入进行归一化，没有可学习的缩放和偏移参数
   - `module_input`：$\mathbb{R}^d\xrightarrow{\text{poseLN_modulation()}}$ $\mathbb{R}^{3d}\xrightarrow{分块}$ `gate_msa, scale_msa, shift_msa`：$\mathbb{R}^d$
-  - 
+  - `pose_token_modulated`：$\mathbb{R}^d=$ `gate_msa * (self.adaptive_norm(pose_token) * (1 + scale_msa) + shift_msa) + pose_token`
++ `trunk()`：残差注意力模块，本质为 `trunk_depth` 个 `Block` 模块拼接而成
++ `pose_branch()`：将 token 表示解码为相机姿态，本质为 $\xrightarrow{\text{MLP}(d\to 9)}$
+  - `pose_token_modulated`：$\mathbb{R}^d\xrightarrow{\text{trunk()}}$ $\xrightarrow{\text{trunk_norm()}}$ $\xrightarrow{\text{pose_branch()}}$ `pred_pose_delta`：$\mathbb{R}^9$
+  - `pred_pose`：$\mathbb{R}^9=$ `pred_pose_delta + pred_pose`，初始为 `None` 故直接赋值为 `pred_pose_delta`
++ `activated_pose`：对预测的相机姿态参数进行激活处理
+  - `pred_pose`：$\mathbb{R}^9\xrightarrow{\text{activate_pose()}}$ `activated_pose`：$\mathbb{R}^9$
+  - 将每一轮预测的 `activated_pose` 添加到 `pred_pose_list` 中，最后返回 `pred_pose_list`
 ```mermaid
 flowchart LR
     subgraph A [迭代预测]
@@ -31,13 +39,13 @@ flowchart LR
         A1(module_input) --poseLN_modulation--> A2(shift_msa)
         A1 --poseLN_modulation--> A3(scale_msa)
         A1 --poseLN_modulation--> A4(gate_msa)
-        A2 --> A5(pose_tokens_modulated)
+        A2 --> A5(pose_token_modulated)
         A3 --> A5
         A4 --> A5
         A6 --adaptive_norm--> A12(pose_token)
         A12 --> A5
         A6 --⊕--> A5
-        A5 --trunk+trunk_norm--> A7(pose_tokens_y)
+        A5 --trunk+trunk_norm--> A7(pose_token_trunk)
         A7 --pose_branch--> A9(pred_pose_delta)
         A9 --⊕--> A0
         A0 --activate_pose--> A11(activated_pose)
