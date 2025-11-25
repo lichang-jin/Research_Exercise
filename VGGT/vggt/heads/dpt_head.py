@@ -152,14 +152,14 @@ class DPTHead(nn.Module):
         out = []
         dpt_idx = 0
 
-        def apply_pos_embed(x: Tensor, H: int, W: int, ratio: float = 0.1) -> Tensor:
+        def apply_pos_embed(x_: Tensor, H_: int, W_: int, ratio: float = 0.1) -> Tensor:
             """Apply positional embedding to tensor x."""
-            patch_h, patch_w = x.shape[-2], x.shape[-1]
-            pos_embed = create_uv_grid(patch_h, patch_w, aspect_ratio=float(W) / float(H), dtype=x.dtype, device=x.device)
-            pos_embed = position_grid_to_embed(pos_embed, x.shape[1])
+            patch_h_, patch_w_ = x_.shape[-2], x_.shape[-1]
+            pos_embed = create_uv_grid(patch_h_, patch_w_, aspect_ratio=float(W_) / float(H_), dtype=x_.dtype, device=x_.device)
+            pos_embed = position_grid_to_embed(pos_embed, x_.shape[1])
             pos_embed = pos_embed * ratio
-            pos_embed = pos_embed.permute(2, 0, 1)[None].expand(x.shape[0], -1, -1, -1)
-            return x + pos_embed
+            pos_embed = pos_embed.permute(2, 0, 1)[None].expand(x_.shape[0], -1, -1, -1)
+            return x_ + pos_embed
 
         for layer_idx in self.intermediate_layer_idx:
             x = aggregated_tokens_list[layer_idx][:, :, patch_start_idx:]
@@ -343,20 +343,20 @@ def position_grid_to_embed(pos_grid: Tensor, embed_dim: int, omega: float = 100.
     assert grid_dim == 2, "Position grid must have 2 dimensions (x, y)"
     pos_flat = pos_grid.reshape(-1, grid_dim)  # (H*W)x2
 
-    def make_sincos_pos_embed(pos: Tensor, embed_dim: int, omega: float = 100.0) -> Tensor:
+    def make_sincos_pos_embed(pos: Tensor, embed_dim_: int, omega_: float = 100.0) -> Tensor:
         """This function generates a 1D positional embedding from a given grid using sine and cosine functions."""
-        assert embed_dim % 2 == 0, "Embedding dimension must be even"
+        assert embed_dim_ % 2 == 0, "Embedding dimension must be even"
         device = pos.device
-        Omega = torch.arange(embed_dim // 2, dtype=torch.float32 if device.type == "mps" else torch.double, device=device)
-        Omega = Omega / (embed_dim / 2.0)
-        Omega = 1.0 / (omega ** Omega)
+        Omega = torch.arange(embed_dim_ // 2, dtype=torch.float32 if device.type == "mps" else torch.double, device=device)
+        Omega = Omega / (embed_dim_ / 2.0)
+        Omega = 1.0 / (omega_ ** Omega)
 
         pos = pos.reshape(-1)
         out = torch.einsum("m,d->md", pos, Omega)
         embed_sin = torch.sin(out)
         embed_cos = torch.cos(out)
-        embed = torch.cat((embed_sin, embed_cos), dim=1)
-        return embed.float()
+        pos_embed = torch.cat((embed_sin, embed_cos), dim=1)
+        return pos_embed.float()
 
     embed_x = make_sincos_pos_embed(pos_flat[:, 0], embed_dim // 2, omega)
     embed_y = make_sincos_pos_embed(pos_flat[:, 1], embed_dim // 2, omega)

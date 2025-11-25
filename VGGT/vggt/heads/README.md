@@ -8,11 +8,11 @@
     - $\mathbf{q}\in\mathbb{R}^4$：旋转四元数 $\xrightarrow{\text{激活函数}_2}$ $\mathbf{q}'\in\mathbb{R}^4$
     - $\mathbf{f}\in\mathbb{R}^2$：焦距 $\xrightarrow{\text{激活函数}_3}$ $\mathbf{f}'\in\mathbb{R}^2$
     - 输出 $\mathbf{g}'=[\mathbf{q}',\mathbf{t}',\mathbf{f}']\in\mathbb{R}^9$
-+ `activate_head()`：处理 3D 点云预测网络的输出，得到 3D 点坐标和置信度
++ `activate_head()`：处理 3D 点云预测网络的输出，得到预测结果和置信度
     - 输入：网络输出张量 `output`：${B\times C\times H\times W}\to B\times H\times W\times C$
     - `xyz`：$B\times H\times W\times (C-1)\xrightarrow{\text{激活函数}_1}$ `points`
     - `confidence`：$B\times H\times W\times 1\xrightarrow{\text{激活函数}_2}$ `confidence`
-    - 输出：3D 点坐标 $\mathbf{p}\in\mathbb{R}^{B\times H\times W\times 3}$，置信度 $\mathbf{c}\in\mathbb{R}^{B\times H\times W\times 1}$
+    - 输出：预测结果 `points` $\in\mathbb{R}^{B\times H\times W\times (C-1)}$，置信度 `confidence` $\in\mathbb{R}^{B\times H\times W\times 1}$
 
 ## [CameraHead](./camera_head.py)
 + 迭代预测相机姿态参数，得到相机姿态 $\mathbf{g}=[\mathbf{q},\mathbf{t},\mathbf{f}]\in\mathbb{R}^9$
@@ -57,10 +57,12 @@ flowchart LR
 ```
 
 ## [DPTHead](./dpt_head.py)
++ 对深度图 $D$、点云图 $P$、跟踪特征 $T$ 和置信度 $c$ 进行预测
++ 根据 `frames_chunk_size` 决定是否分块处理，将 `frames` 送入 `_froward_frame()` 函数
++ `_forward_frame()`：
 
 
-
-以下是两个组件模块的实现：
+⭐以下是两个组件模块的实现：
 ### (1). ResidualConvUnit
 + `ResidualConvUnit()`：残差卷积单元
 + 输入输出维度为 `features`$=d$，网络结构如下：
@@ -89,4 +91,10 @@ graph LR
         A4 --interpolate--> A5(x)
         A5 --Conv--> A6(y)
 ```
+
+⭐辅助函数的功能：
+### (1). `apply_pos_embed()`
++ `create_uv_grid()`：生成网格坐标 $(u,v)$，将其归一化到 $[-1,1]$ 范围内
++ `position_grid_to_embed()`：将 2D 坐标网格转换为高维的正弦余弦位置嵌入向量
+  - `make_sincos_pos_embed()`：
 
