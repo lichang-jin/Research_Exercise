@@ -57,3 +57,36 @@ flowchart LR
 ```
 
 ## [DPTHead](./dpt_head.py)
+
+
+
+以下是两个组件模块的实现：
+### (1). ResidualConvUnit
++ `ResidualConvUnit()`：残差卷积单元
++ 输入输出维度为 `features`$=d$，网络结构如下：
+```mermaid
+graph LR
+        A0(x) --ReLU--> A1(r)
+        A1 --Conv--> A2(r)
+        A2 --norm*--> A7(r)
+        A7 --ReLU--> A3(r)
+        A3 --Conv--> A4(r)
+        A4 --norm*--> A8(r)
+        A8 --> A5(y)
+        A0 --⊕--> A5
+        
+```
+
+### (2). FeatureFusionBlock
++ `FeatureFusionBlock()`：特征融合模块，若 `has_residual` 为 `True`，则将 `x` 与 `x1` 两个特征进行特征融合
++ 输入维度为 `features`$=d_1$，输出维度为 `out_features`$=d_2$，网络结构如下：
+```mermaid
+graph LR
+        A0(x1*) --ResidualConvUnit1*--> A1(r*)
+        A2(x) --⊕--> A3(x)
+        A1 --> A3
+        A3 --ResidualConvUnit2--> A4(x)
+        A4 --interpolate--> A5(x)
+        A5 --Conv--> A6(y)
+```
+
