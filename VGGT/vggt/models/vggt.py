@@ -90,7 +90,11 @@ class VGGT(nn.Module, PyTorchModelHubMixin):
                 predictions["world_points"] = points
                 predictions["world_points_confidence"] = points_confidence
 
-        # TODO: Track head
+        if self.track_head is not None and query_points is not None:
+            track_list, visibility, track_confidence = self.track_head(aggregated_tokens_list, images, patch_start_idx, query_points)
+            predictions["track"] = track_list[-1]
+            predictions["visibility"] = visibility
+            predictions["track_confidence"] = track_confidence
 
         if not self.training:
             predictions["images"] = images
