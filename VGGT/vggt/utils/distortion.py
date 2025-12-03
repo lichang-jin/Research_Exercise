@@ -39,7 +39,6 @@ def iterative_undistortion(params: ArrayLike, track_normalized: ArrayLike, max_i
     :return: Undistorted normalized tracks tensor.
     """
     params, track_normalized = _ensure_tensor(params), _ensure_tensor(track_normalized)
-    B, N = track_normalized.shape[:2]
     u, v = track_normalized[..., 0].clone(), track_normalized[..., 1].clone()
     origin_u, origin_v = u.clone(), v.clone()
 
@@ -94,3 +93,31 @@ def apply_distortion(extra_params, u, v) -> Tuple[Tensor, Tensor]:
         raise ValueError(f"Invalid number of distortion parameters: {num_params}")
 
     return u.clone() + du, v.clone() + dv
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+if __name__ == "__main__":
+    # Test the iterative_undistortion function
+    import random
+    import pycolmap
+    import pdb
+
+    max_diff = 0
+    for _ in range(1000):
+        B = random.randint(1, 500)
+        track_num = random.randint(100, 1000)
+        params = torch.rand((B, 1), dtype=torch.float32)
+        track_normalized = torch.rand((B, track_num, 2), dtype=torch.float32)
+
+        undistorted = iterative_undistortion(params, track_normalized)
+        for b in range(B):
+            pycolmap_params = np.array([1, 0, 0, params[b].item()])
+            pycamera = pycolmap.Camera(model="SIMPLE_RADIAL", width=1, height=1, params=pycolmap_params, camera_id=0)
+            undistorted_pycolmap = pycamera.cam_from_img(track_normalized[b].numpy())
+            diff = torch.abs(undistorted[b] - torch.from_numpy(undistorted_pycolmap)).abs().median()
+            max_diff = max(max_diff, diff.item())
+            print(f"diff: {diff}, Max diff: {max_diff}")
+
+    pdb.set_trace()
+
