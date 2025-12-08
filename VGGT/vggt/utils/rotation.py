@@ -48,9 +48,9 @@ def matrix_to_quaternion(matrix: Tensor) -> Tensor:
             ret = torch.where(position_mask, torch.sqrt(x), ret)
         return ret
 
-    q_abs = _sqrt_position_part(torch.stack(
+    q_abs = _sqrt_position_part(torch.stack( # [4r^2, 4i^2, 4j^2, 4k^2]
         [1.0 + m00 + m11 + m22, 1.0 + m00 - m11 - m22, 1.0 - m00 + m11 - m22, 1.0 - m00 - m11 + m22], dim=-1))
-    q = torch.stack([
+    q = torch.stack([ # 假设不同的分量 [|r|, |i|, |j|, |k|] 最大
         torch.stack([q_abs[..., 0] ** 2, m21 - m12, m02 - m20, m10 - m01], dim=-1),
         torch.stack([m21 - m12, q_abs[..., 1] ** 2, m10 + m01, m02 + m20], dim=-1),
         torch.stack([m02 - m20, m10 + m01, q_abs[..., 2] ** 2, m21 + m12], dim=-1),
