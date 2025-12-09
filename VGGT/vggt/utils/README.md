@@ -82,3 +82,18 @@
 + 通过相机位姿编码得到相机外参、内参
 + $\mathbf{p}=[\mathbf{t},\mathbf{q},\mathbf{f}]\to\mathbf{t}\in\mathbb{R}^3$，$\mathbf{q}\xrightarrow{\text{quaternion\_to\_matrix}}\mathbf{R}\in\mathbb{R}^{3\times3}$，得到外参矩阵 $[R\ \ \ \ t]$
 + $\mathbf{f}\to\left[\begin{matrix}f_x\\f_y\end{matrix}\right]\to K=\left[\begin{matrix}f_x&&\frac{W}{2}\\&f_y&\frac{H}{2}\\&&1\end{matrix}\right]$
+
+## [Load Image](./load_image.py)
++ 通过路径加载图像，并对图像进行裁剪/填充处理
+### 1. load_and_preprocess_image_square
+
++ 加载图像，并将图像转换为 `target_size` 大小的正方形图像
++ 返回转换后的图像、原始图像在正方形图像中的坐标、原始图像的尺寸
+
+### 2. load_and_preprocess_image
++ 加载图像，并通过 `mode`（`pad`或`crop`） 将图像转换为 `target_size` 大小的图像
++ 理论上转换后的图像 `shape` 应相同，若不同则通过填充使其相同
++ 返回转换后的图像
+
+## [Helper](./helper.py)
++ 其他辅助函数
