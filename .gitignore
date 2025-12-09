@@ -209,3 +209,9 @@ __marimo__/
 # idea
 .idea
 VGGT/.idea
+
+# data
+VGGT/data
+
+# result
+VGGT/result
